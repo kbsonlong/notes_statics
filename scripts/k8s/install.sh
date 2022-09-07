@@ -93,7 +93,7 @@ yum remove docker \
             docker-engine \
             docker \
             docker-ce \
-            docker-ee
+            docker-ee -y
 # 2.安装所需的包
 # yum-utils 提供了 yum-config-manager 实用程
 # 并且 devicemapper 存储驱动需要 device-mapper-persistent-data 和 lvm2
@@ -228,6 +228,7 @@ kubectl create -f storage-class.yml
 
 Install_Node() {
     Init
+    Config_Host
     Install_Docker
     Install_Kubeadm
 }
