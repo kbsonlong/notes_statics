@@ -226,11 +226,28 @@ kubectl create -f storage-class.yml
 
 }
 
-main() {
+Install_Node() {
     Init
     Install_Docker
     Install_Kubeadm
-    Init_Master
-    Install_CNI
-    Local_Storage
 }
+
+Install_Master() {
+   Install_Node
+   Init_Master
+    Install_CNI
+    Local_Storage 
+}
+
+main() {
+case $1 in 
+    node)
+    Install_Node
+    ;;
+    master)
+    Install_Master
+    ;;
+esac
+}
+
+main $1
