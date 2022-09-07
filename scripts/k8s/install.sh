@@ -140,11 +140,7 @@ yum install kubeadm-1.20.5  kubectl-1.20.5 kubelet-1.20.5  -y
 systemctl enable docker.service
 systemctl enable kubelet.service
 systemctl start kubelet.service
-## 命令补全
-yum -y install bash-completion
-source /etc/profile.d/bash_completion.sh
-source <(kubectl completion bash)
-echo "source <(kubectl completion bash)" >> ~/.bashrc
+
 }
 
 
@@ -201,6 +197,11 @@ cp -i /etc/kubernetes/admin.conf /root/.kube/config
 ## 命令补全
 echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >> ~/.bash_profile
 source .bash_profile
+## 命令补全
+yum -y install bash-completion
+source /etc/profile.d/bash_completion.sh
+source <(kubectl completion bash)
+echo "source <(kubectl completion bash)" >> ~/.bashrc
 }
 
 
