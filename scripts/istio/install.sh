@@ -24,3 +24,5 @@ main() {
     Deploy_Bookinfo
     Deploy_Obs
 }
+
+main
