@@ -208,6 +208,7 @@ Install_CNI() {
     curl https://docs.projectcalico.org/v3.10/manifests/calico.yaml -o calico-3.10.yml
     sed 's/# - name: CALICO_IPV4POOL_CIDR/- name: CALICO_IPV4POOL_CIDR/g' calico-3.10.yml -i
     sed 's/#   value: "192.168.0.0\/16"/  value: "10.244.0.0\/16"/g' calico-3.10.yml -i 
+    sed 's/value: "192.168.0.0\/16"/value: "10.244.0.0\/16"/g' calico-3.10.yml -i
     kubectl apply -f calico-3.10.yml   
 }
 
