@@ -10,6 +10,7 @@ Install_Istio() {
 }
 
 Deploy_Bookinfo() {
+    kubectl label namespace default istio-injection=enabled
     kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
     kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 }
