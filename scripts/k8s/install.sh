@@ -214,15 +214,7 @@ Install_CNI() {
 }
 
 Local_Storage() {
-    cat > storage-class.yml <<EOF
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: local-storage
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
+    kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.23/deploy/local-path-storage.yaml
 EOF
 
 kubectl create -f storage-class.yml
@@ -240,7 +232,8 @@ Install_Master() {
     Install_Node
     Init_Master
     Install_CNI
-    Local_Storage 
+    Local_Storage
+    kubectl taint node `hostname`  node-role.kubernetes.io/master-
 }
 
 main() {
