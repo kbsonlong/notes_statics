@@ -279,7 +279,7 @@ spec:
       serviceAccountName: local-path-provisioner-service-account
       containers:
         - name: local-path-provisioner
-          image: rancher/local-path-provisioner:v0.0.23
+          image: registry.cn-hangzhou.aliyuncs.com/seam/local-path-provisioner:v0.0.23
           imagePullPolicy: IfNotPresent
           command:
             - local-path-provisioner
