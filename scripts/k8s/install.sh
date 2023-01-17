@@ -2,6 +2,21 @@
 
 # Install K8S
 
+Upgrade_kernel() {
+  
+  rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+  yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+  kernel_version=$(yum  --disablerepo="*"  --enablerepo="elrepo-kernel"  list  |grep 'kernel-lt.x86_64'|awk '{print $2}')
+  yum  --enablerepo=elrepo-kernel  install  -y  kernel-lt-${kernel_version}
+  awk -F\' '$1=="menuentry " {print i++ " : " $2}' /boot/grub2/grub.cfg
+  yum install -y grub2-pc
+  # grub2-set-default 0
+  grub-set-default "CentOS Linux (${kernel_version}.elrepo.x86_64) 7 (Core)"
+  sed 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=0/g' /etc/default/grub -i
+  grub2-mkconfig -o /boot/grub2/grub.cfg
+
+}
+
 Init () {
     yum install -y epel-release
 yum install -y conntrack ntpdate ntp ipvsadm nfs-utils ipset jq iptables curl sysstat libseccomp wget
@@ -351,6 +366,7 @@ EOF
 }
 
 Install_Node() {
+    Upgrade_kernel
     Init
     Config_Host
     Install_Docker
@@ -377,3 +393,5 @@ esac
 }
 
 main $1
+
+reboot
