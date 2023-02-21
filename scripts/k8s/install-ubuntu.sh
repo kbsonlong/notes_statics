@@ -1,3 +1,8 @@
+cat << EOF >> /etc/hosts
+10.0.16.2 master01
+10.0.16.2 lb.alongparty.cn
+EOF
+
 swapoff -a
 sed -i '/swap/s/^/#/' /etc/fstab
 
@@ -167,7 +172,7 @@ localAPIEndpoint:
 nodeRegistration:
   criSocket: unix:///var/run/containerd/containerd.sock
   imagePullPolicy: IfNotPresent
-  name: u-master1 # 节点的hostname
+  name: master01 # 节点的hostname
   taints: null
 ---
 apiServer:
@@ -220,3 +225,5 @@ curl https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/ca
 kubectl apply -f calico-3-24-1.yaml
 
 #https://blog.51cto.com/belbert/5872146
+
+
