@@ -125,7 +125,7 @@ apt-get update
 apt-cache madison kubeadm|head
 
 # 安装指定版本
-apt install -y  kubeadm=1.24.5-00 kubelet=1.24.5-00 kubectl=1.24.5-00
+apt-get install kubernetes-cni=1.2.0-00 kubelet=1.26.1-00 kubectl=1.26.1-00  cri-tools=1.26.0-00 kubeadm=1.26.1-00  -y
 
 # 设置crictl
 cat > /etc/crictl.yaml << EOF
@@ -139,11 +139,11 @@ EOF
 # 使用国内阿里云镜像站点，查看所需镜像
 kubeadm config images list \
 --image-repository registry.aliyuncs.com/google_containers \
---kubernetes-version=v1.24.5
+--kubernetes-version=v1.26.1
 
 # 指定版本下载
 kubeadm config images pull \
---kubernetes-version=v1.24.5 \
+--kubernetes-version=v1.26.1 \
 --image-repository registry.aliyuncs.com/google_containers
 
 # 查看镜像
@@ -192,7 +192,7 @@ etcd:
     dataDir: /var/lib/etcd
 imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers # 国内源
 kind: ClusterConfiguration
-kubernetesVersion: 1.24.5 # 指定版本
+kubernetesVersion: 1.26.1 # 指定版本
 controlPlaneEndpoint: "10.0.16.2:6443" # 设置高可用地址
 networking:
   dnsDomain: cluster.local
