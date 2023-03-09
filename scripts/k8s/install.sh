@@ -126,14 +126,14 @@ yum install -y docker-ce
 mkdir -p /etc/docker
 cat > /etc/docker/daemon.json <<EOF
 {
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m"
-  },
-  "storage-driver": "overlay2",
-  "registry-mirrors": ["https://3ksoxp7c.mirror.aliyuncs.com"],
-"graph":"/data/docker"
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m"
+    },
+    "registry-mirrors": [
+        "https://3ksoxp7c.mirror.aliyuncs.com"
+    ],
+    "data-root": "/data/docker"
 }
 EOF
 systemctl daemon-reload
