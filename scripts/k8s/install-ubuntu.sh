@@ -3,132 +3,161 @@ cat << EOF >> /etc/hosts
 10.0.16.2 lb.alongparty.cn
 EOF
 
-swapoff -a
-sed -i '/swap/s/^/#/' /etc/fstab
+Init_Node() {
 
-# 或者
-systemctl disable --now swap.img.swap
-systemctl mask swap.target
+  # 关闭Swap
+  swapoff -a
+  sed -i '/swap/s/^/#/' /etc/fstab
 
-
-# 借助于chronyd服务（程序包名称chrony）设定各节点时间精确同步
-apt-get -y install chrony
-chronyc sources -v
-
-# 设置成东八区时区
-timedatectl set-timezone Asia/Shanghai
+  systemctl disable --now swap.img.swap
+  systemctl mask swap.target
 
 
-#禁用默认配置的iptables防火墙服务
-ufw disable
-ufw status
+  # 配置时间同步
+  apt-get -y install chrony
+  chronyc sources -v
+
+  # 设置成东八区时区
+  timedatectl set-timezone Asia/Shanghai
 
 
-cat > /etc/modules-load.d/k8s.conf <<EOF
-overlay
-br_netfilter
+  # 禁用默认配置的iptables防火墙服务
+  ufw disable
+  ufw status
+
+
+  # 加载模块
+  cat > /etc/modules-load.d/k8s.conf <<EOF
+  overlay
+  br_netfilter
 EOF
 
-# 手动加载模块
-modprobe overlay && modprobe br_netfilter
+  # 手动加载模块
+  modprobe overlay && modprobe br_netfilter
 
-# 设置所需的sysctl参数，参数在重新启动后保持不变
-cat > /etc/sysctl.d/k8s.conf  <<EOF
-net.bridge.bridge-nf-call-iptables  = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.ipv4.ip_forward                 = 1
+  # 设置所需的sysctl参数，参数在重新启动后保持不变
+  cat > /etc/sysctl.d/k8s.conf  <<EOF
+  net.bridge.bridge-nf-call-iptables  = 1
+  net.bridge.bridge-nf-call-ip6tables = 1
+  net.ipv4.ip_forward                 = 1
 EOF
 
-# 应用 sysctl 参数而不重新启动
-sysctl --system
+  # 应用 sysctl 参数而不重新启动
+  sysctl --system
 
 
-# 安装ipset和ipvsadm：
-apt install -y ipset ipvsadm
+  # 安装ipset和ipvsadm：
+  apt install -y ipset ipvsadm
 
-# 配置加载模块
-cat > /etc/modules-load.d/ipvs.conf << EOF
-modprobe -- ip_vs
-modprobe -- ip_vs_rr
-modprobe -- ip_vs_wrr
-modprobe -- ip_vs_sh
-modprobe -- nf_conntrack
-EOF
-
-
-# 临时加载
-modprobe -- ip_vs
-modprobe -- ip_vs_rr
-modprobe -- ip_vs_wrr
-modprobe -- ip_vs_sh
-
-# 开机加载配置，将ipvs相关模块加入配置文件中
-cat >> /etc/modules <<EOF
-ip_vs_sh
-ip_vs_wrr
-ip_vs_rr
-ip_vs
-nf_conntrack
+  # 配置加载模块
+  cat > /etc/modules-load.d/ipvs.conf << EOF
+  modprobe -- ip_vs
+  modprobe -- ip_vs_rr
+  modprobe -- ip_vs_wrr
+  modprobe -- ip_vs_sh
+  modprobe -- nf_conntrack
 EOF
 
 
+  # 临时加载
+  modprobe -- ip_vs
+  modprobe -- ip_vs_rr
+  modprobe -- ip_vs_wrr
+  modprobe -- ip_vs_sh
 
-
-#添加key
-curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | apt-key add -
-
-#设置阿里云镜像源
-add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
-
-#查看已经添加
-cat /etc/apt/sources.list.d/archive_uri-https_mirrors_aliyun_com_docker-ce_linux_ubuntu-jammy.list
-
-#更新软件
-sudo apt update -y
-
-
-
-# 安装
-apt install -y containerd.io
-
-# 生成containerd默认配置文件
-cp /etc/containerd/config.toml /etc/containerd/config.toml.bak
-containerd config default | tee /etc/containerd/config.toml
-systemctl daemon-reload && systemctl restart containerd.service
-systemctl status containerd
-
-# sandbox_image镜像源设置为阿里云google_containers镜像源
-sed -i "s#k8s.gcr.io/pause:3.6#registry.aliyuncs.com/google_containers/pause:3.8#g"  /etc/containerd/config.toml
-
-# 修改Systemdcgroup
-sed -i 's#SystemdCgroup = false#SystemdCgroup = true#g' /etc/containerd/config.toml
-
-# 添加 endpoint加速器
-sed -i '/registry.mirrors]/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]' /etc/containerd/config.toml
-sed -i '/registry.mirrors."docker.io"]/a\ \ \ \ \ \ \ \ \ \ endpoint = ["https://ul2pzi84.mirror.aliyuncs.com"]' /etc/containerd/config.toml
-
-#重新加载并重启containerd
-systemctl daemon-reload && systemctl restart containerd
+  # 开机加载配置，将ipvs相关模块加入配置文件中
+  cat >> /etc/modules <<EOF
+  ip_vs_sh
+  ip_vs_wrr
+  ip_vs_rr
+  ip_vs
+  nf_conntrack
+EOF
+}
 
 
 
 
-# 配置阿里云镜像站点
-curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
-cat >/etc/apt/sources.list.d/kubernetes.list <<EOF
-deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
+Install_Container() {
+  # 1. 更新本地ca证书
+  sudo apt-get update
+  sudo apt-get install \
+     apt-transport-https \
+     ca-certificates \
+     curl \
+     gnupg \
+     lsb-release
+
+  # 2. 设置阿里云镜像源
+  curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | apt-key add -
+  add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+  cat /etc/apt/sources.list.d/archive_uri-https_mirrors_aliyun_com_docker-ce_linux_ubuntu-jammy.list
+
+  # 3. 更新软件
+  sudo apt update -y
+
+  # 4. 安装Docker
+  sudo apt-get update
+  sudo apt-get install docker-ce docker-ce-cli containerd.io
+
+  # 5. 配置docker
+  mkdir -p /etc/docker
+cat > /etc/docker/daemon.json <<EOF
+{
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m"
+    },
+    "registry-mirrors": [
+        "https://3ksoxp7c.mirror.aliyuncs.com"
+    ],
+    "data-root": "/data/docker"
+}
 EOF
 
-apt-get update
+  # 6. 启动docker
+  sudo systemctl enable docker
+  sudo systemctl start docker
 
-# 查看版本
-apt-cache madison kubeadm|head
+  # 7. 配置containerd
+  # 生成containerd默认配置文件
+  cp /etc/containerd/config.toml /etc/containerd/config.toml.bak
+  containerd config default | tee /etc/containerd/config.toml
+  
+  # sandbox_image镜像源设置为阿里云google_containers镜像源
+  sed -i "s#k8s.gcr.io/pause:3.6#registry.aliyuncs.com/google_containers/pause:3.8#g"  /etc/containerd/config.toml
 
-# 安装指定版本
-apt-get install kubernetes-cni=1.2.0-00 kubelet=1.26.1-00 kubectl=1.26.1-00  cri-tools=1.26.0-00 kubeadm=1.26.1-00  -y
+  # 修改Systemdcgroup
+  sed -i 's#SystemdCgroup = false#SystemdCgroup = true#g' /etc/containerd/config.toml
 
-# 设置crictl
-cat > /etc/crictl.yaml << EOF
+  # 添加 endpoint加速器
+  sed -i '/registry.mirrors]/a\ \ \ \ \ \ \ \ [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]' /etc/containerd/config.toml
+  sed -i '/registry.mirrors."docker.io"]/a\ \ \ \ \ \ \ \ \ \ endpoint = ["https://ul2pzi84.mirror.aliyuncs.com"]' /etc/containerd/config.toml
+
+  # 8. 重新加载并重启containerd
+  systemctl daemon-reload && systemctl restart containerd
+  systemctl status containerd
+
+}
+
+
+Install_Kubeadm() {
+  # 配置阿里云镜像站点
+  curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
+  cat >/etc/apt/sources.list.d/kubernetes.list <<EOF
+  deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
+  EOF
+
+  apt-get update
+
+  # 查看版本
+  apt-cache madison kubeadm|head
+
+  # 安装指定版本
+  apt-get install kubernetes-cni=1.2.0-00 kubelet=1.26.1-00 kubectl=1.26.1-00  cri-tools=1.26.0-00 kubeadm=1.26.1-00  -y
+
+  # 设置crictl
+  cat > /etc/crictl.yaml << EOF
 runtime-endpoint: unix:///var/run/containerd/containerd.sock
 image-endpoint: unix:///var/run/containerd/containerd.sock
 timeout: 10 
@@ -136,26 +165,29 @@ debug: false
 EOF
 
 
-# 使用国内阿里云镜像站点，查看所需镜像
-kubeadm config images list \
---image-repository registry.aliyuncs.com/google_containers \
---kubernetes-version=v1.26.1
 
-# 指定版本下载
-kubeadm config images pull \
---kubernetes-version=v1.26.1 \
---image-repository registry.aliyuncs.com/google_containers
+}
 
-# 查看镜像
-crictl images
+Init_Master() {
+
+  # 使用国内阿里云镜像站点，查看所需镜像
+  kubeadm config images list \
+  --image-repository registry.aliyuncs.com/google_containers \
+  --kubernetes-version=v1.26.1
+
+  # 指定版本下载
+  kubeadm config images pull \
+  --kubernetes-version=v1.26.1 \
+  --image-repository registry.aliyuncs.com/google_containers
+
+  # 查看镜像
+  crictl images
 
 
-# 生成默认配置，便于修改
-kubeadm config print init-defaults > kubeadm.yaml
+  # 生成默认配置，便于修改
+  kubeadm config print init-defaults > kubeadm.yaml
 
-
-
-cat << EOF > kubeadm.yaml
+  cat << EOF > kubeadm.yaml
 apiVersion: kubeadm.k8s.io/v1beta3
 bootstrapTokens:
 - groups:
@@ -212,17 +244,25 @@ cgroupDriver: systemd
 EOF
 
 
+  # 初始化集群并将控制平面证书上传到 kubeadm-certs Secret
+  kubeadm init \
+  --config /root/kubeadm.yaml \
+  --ignore-preflight-errors=SystemVerification \
+  --upload-certs
+}
 
-kubeadm init \
---config /root/kubeadm.yaml \
---ignore-preflight-errors=SystemVerification \
---upload-certs # 将控制平面证书上传到 kubeadm-certs Secret
 
+Install_CNI() {
+  # 使用calico
+  curl https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/calico.yaml -O calico-3-24-1.yaml
+  kubectl apply -f calico-3-24-1.yaml
+}
 
-
-# 使用calico
-curl https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/calico.yaml -O calico-3-24-1.yaml
-kubectl apply -f calico-3-24-1.yaml
+Init_Node
+Install_Container
+Install_Kubeadm
+Init_Master
+Install_CNI
 
 #https://blog.51cto.com/belbert/5872146
 
