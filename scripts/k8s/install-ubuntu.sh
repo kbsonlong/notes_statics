@@ -81,12 +81,13 @@ EOF
 Install_Container() {
   # 1. 更新本地ca证书
   sudo apt-get update
-  sudo apt-get install \
+  sudo apt-get install -y \
      apt-transport-https \
      ca-certificates \
      curl \
      gnupg \
-     lsb-release
+     lsb-release \
+     software-properties-common
 
   # 2. 设置阿里云镜像源
   curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | apt-key add -
@@ -98,7 +99,7 @@ Install_Container() {
 
   # 4. 安装Docker
   sudo apt-get update
-  sudo apt-get install docker-ce docker-ce-cli containerd.io
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
   # 5. 配置docker
   mkdir -p /etc/docker
@@ -109,7 +110,7 @@ cat > /etc/docker/daemon.json <<EOF
         "max-size": "100m"
     },
     "registry-mirrors": [
-        "https://3ksoxp7c.mirror.aliyuncs.com"
+        "https://ec8tbfzf.mirror.aliyuncs.com"
     ],
     "data-root": "/data/docker"
 }
