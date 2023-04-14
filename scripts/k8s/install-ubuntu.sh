@@ -138,6 +138,10 @@ EOF
   # 8. 重新加载并重启containerd
   systemctl daemon-reload && systemctl restart containerd
   systemctl status containerd
+  
+  # 9. 安装docker-compose
+  sudo curl -L "https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  chmod +x /usr/local/bin/docker-compose
 
 }
 
