@@ -91,7 +91,7 @@ Install_Container() {
 
   # 2. 设置阿里云镜像源
   curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | apt-key add -
-  add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+  add-apt-repository -y "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
   cat /etc/apt/sources.list.d/archive_uri-https_mirrors_aliyun_com_docker-ce_linux_ubuntu-jammy.list
 
   # 3. 更新软件
